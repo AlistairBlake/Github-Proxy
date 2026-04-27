@@ -236,7 +236,11 @@ const visiblePages = computed(() => {
 })
 
 onMounted(() => {
-  if (props.cachedData && props.cachedData.results) {
+  // 只有当缓存的搜索词与当前搜索词一致时才使用缓存
+  // 防止显示错误的搜索结果
+  if (props.cachedData &&
+      props.cachedData.results &&
+      props.cachedData.query === props.searchQuery) {
     searchResults.value = props.cachedData.results
     totalResults.value = props.cachedData.totalResults
     currentPage.value = props.cachedData.currentPage
