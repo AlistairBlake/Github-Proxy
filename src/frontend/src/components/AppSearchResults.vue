@@ -9,10 +9,45 @@
           返回首页
         </button>
 
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="font-bold text-3xl text-gray-900 dark:text-white">搜索结果</h1>
-            <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">搜索关键词: "{{ searchQuery }}"</p>
+        <!-- 搜索选项栏 -->
+        <div v-if="!loadingSearch && !searchError && searchResults.length > 0" class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 mb-6 space-y-3">
+          <!-- 排序和范围选项 -->
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- 排序选项 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">排序:</label>
+              <select
+                v-model="sortBy"
+                @change="handleSortChange"
+                class="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">最佳匹配</option>
+                <option value="stars">星标数</option>
+                <option value="forks">Fork 数</option>
+                <option value="updated">最近更新</option>
+              </select>
+            </div>
+
+            <!-- 搜索范围 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">范围:</label>
+              <select
+                v-model="searchScope"
+                @change="handleScopeChange"
+                class="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">全部</option>
+              <option value="name">名称</option>
+              <option value="description">描述</option>
+              <option value="readme">README</option>
+              </select>
+            </div>
+
+            <!-- 结果统计 -->
+            <div class="ml-auto text-sm text-gray-500 dark:text-gray-400">
+              共找到 <span class="font-semibold text-blue-600 dark:text-blue-400">{{ totalResults }}</span> 个仓库
+              <span v-if="totalResults > 0" class="ml-2">(第 {{ currentPage }}/{{ totalPages }} 页)</span>
+            </div>
           </div>
         </div>
 
@@ -38,7 +73,9 @@
         <div v-else class="space-y-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white">仓库列表</h2>
-            <span class="text-sm text-gray-500 dark:text-gray-400">共 {{ searchResults.length }} 个仓库</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+              显示 {{ searchResults.length }} / {{ totalResults }} 个仓库
+            </span>
           </div>
 
           <div v-for="repo in searchResults" :key="repo.id" class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-6 hover:shadow-md transition-shadow">
@@ -74,7 +111,7 @@
                     </svg>
                     {{ repo.forks_count }}
                   </span>
-                  <span>更新于 {{ formatDate(repo.updated_at) }}</span>
+                  <span>最后提交 {{ formatDate(repo.pushed_at) }}</span>
                 </div>
               </div>
               <div class="flex flex-col gap-2 ml-4">
@@ -94,6 +131,44 @@
               </div>
             </div>
           </div>
+
+          <!-- 分页控制 - 统一样式 -->
+          <div v-if="totalPages > 1" class="flex items-center justify-center gap-1 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 1 || loadingSearch"
+              class="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </button>
+
+            <template v-for="page in visiblePages" :key="page">
+              <span v-if="page === '...'" class="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400">…</span>
+              <button
+                v-else
+                @click="goToPage(page)"
+                :class="[
+                  'px-3 py-1.5 border rounded-md text-sm font-medium transition-colors',
+                  currentPage === page
+                    ? 'bg-blue-600 text-white border-blue-600 dark:border-blue-600'
+                    : 'border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ]">
+                {{ page }}
+              </button>
+            </template>
+
+            <button
+              @click="nextPage"
+              :disabled="currentPage === totalPages || loadingSearch"
+              class="px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -101,54 +176,172 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 const props = defineProps({
   searchQuery: String,
   selectedNode: Object,
-  getNodeUrl: Function
+  getNodeUrl: Function,
+  cachedData: {
+    type: Object,
+    default: null
+  }
 })
 
-const emit = defineEmits(['back', 'view-releases'])
+const emit = defineEmits(['back', 'view-releases', 'cache-update'])
 
 const searchResults = ref([])
 const loadingSearch = ref(false)
 const searchError = ref('')
+const totalResults = ref(0)
+const currentPage = ref(1)
+const perPage = 30
+
+// 排序选项
+const sortBy = ref('')
+const sortOrder = ref('desc')
+
+// 搜索范围选项
+const searchScope = ref('all')
+
+// 计算总页数
+const totalPages = computed(() => {
+  if (totalResults.value === 0) return 0
+  return Math.ceil(totalResults.value / perPage)
+})
+
+// 可见页码（带省略号的完整分页）
+const visiblePages = computed(() => {
+  const pages = []
+  const maxVisible = 7
+  const total = totalPages.value || 1
+
+  if (total <= maxVisible) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+    return pages
+  }
+
+  pages.push(1)
+  if (currentPage.value > 4) pages.push('...')
+
+  const start = Math.max(2, currentPage.value - 2)
+  const end = Math.min(total - 1, currentPage.value + 2)
+
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  if (currentPage.value < total - 3) pages.push('...')
+  pages.push(total)
+
+  return pages
+})
 
 onMounted(() => {
-  if (props.searchQuery) {
+  if (props.cachedData && props.cachedData.results) {
+    searchResults.value = props.cachedData.results
+    totalResults.value = props.cachedData.totalResults
+    currentPage.value = props.cachedData.currentPage
+    sortBy.value = props.cachedData.sortBy || ''
+    sortOrder.value = props.cachedData.sortOrder || 'desc'
+    searchScope.value = props.cachedData.searchScope || 'all'
+  } else if (props.searchQuery) {
     searchRepositories()
   }
 })
 
-const searchRepositories = async () => {
+// 构建查询字符串
+const buildQueryString = (query) => {
+  let baseQuery = query.trim()
+
+  if (!baseQuery) return ''
+
+  // 处理 user/repo 格式
+  if (baseQuery.includes('/') && !baseQuery.startsWith('http')) {
+    const parts = baseQuery.split('/').filter(p => p.trim())
+    if (parts.length === 2) {
+      baseQuery = `user:${parts[0]} ${parts[1]}`
+    }
+  }
+
+  // 根据搜索范围添加限定符
+  // 注意：GitHub API 的 in: 限定符不支持逗号分隔多个字段
+  if (searchScope.value !== 'all' && !baseQuery.includes('user:')) {
+    const scopeMap = {
+      'name': 'in:name',
+      'description': 'in:description',
+      'readme': 'in:readme'
+    }
+    baseQuery = `${baseQuery} ${scopeMap[searchScope.value]}`
+  }
+
+  return baseQuery
+}
+
+// 更新缓存
+const updateCache = () => {
+  const cacheData = {
+    query: props.searchQuery,
+    results: searchResults.value,
+    totalResults: totalResults.value,
+    currentPage: currentPage.value,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+    searchScope: searchScope.value
+  }
+
+  emit('cache-update', cacheData)
+
+  window.__searchResultsCache = searchResults.value
+  window.__searchTotalResultsCache = totalResults.value
+  window.__searchCurrentPageCache = currentPage.value
+  window.__searchSortByCache = sortBy.value
+  window.__searchSortOrderCache = sortOrder.value
+  window.__searchScopeCache = searchScope.value
+}
+
+const searchRepositories = async (page = 1) => {
   if (!props.searchQuery.trim() || !props.selectedNode) return
 
   loadingSearch.value = true
   searchError.value = ''
-  searchResults.value = []
+  if (page === 1) {
+    searchResults.value = []
+  }
 
   try {
-    let query = props.searchQuery.trim()
+    const query = buildQueryString(props.searchQuery)
 
-    if (!query.includes('/') && !query.startsWith('http')) {
-      query = query + ' in:name'
-    } else if (query.includes('/') && !query.startsWith('http')) {
-      const parts = query.split('/').filter(p => p.trim())
-      if (parts.length === 2) {
-        query = `user:${parts[0]} ${parts[1]} in:name`
-      } else if (parts.length === 1) {
-        query = `${parts[0]} in:name`
-      }
+    if (!query) {
+      throw new Error('搜索关键词不能为空')
     }
 
-    const apiPath = `search/repositories?q=${encodeURIComponent(query)}&per_page=10&sort=stars&order=desc`
-    const proxyUrl = '/' + `https://api.github.com/${apiPath}`
+    // 构建API参数
+    let apiPath = `search/repositories?q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}`
 
+    // 添加排序参数（仅当选择了排序方式时）
+    if (sortBy.value) {
+      apiPath += `&sort=${sortBy.value}&order=${sortOrder.value}`
+    }
+
+    const proxyUrl = '/' + `https://api.github.com/${apiPath}`
     const response = await fetch(proxyUrl)
 
     if (!response.ok) {
-      throw new Error(`搜索失败: ${response.status} ${response.statusText}`)
+      let errorMsg = `搜索失败: ${response.status} ${response.statusText}`
+
+      if (response.status === 422) {
+        const errorData = await response.json().catch(() => ({}))
+        if (errorData.message) {
+          errorMsg = `搜索参数错误: ${errorData.message}`
+        } else {
+          errorMsg = '搜索参数错误，请检查搜索关键词是否有效'
+        }
+      } else if (response.status === 403) {
+        errorMsg = 'API 请求频率超限，请稍后重试'
+      } else if (response.status === 429) {
+        errorMsg = '请求过于频繁，请稍后再试'
+      }
+
+      throw new Error(errorMsg)
     }
 
     const data = await response.json()
@@ -162,12 +355,17 @@ const searchRepositories = async () => {
         stargazers_count: item.stargazers_count,
         forks_count: item.forks_count,
         language: item.language,
-        updated_at: item.updated_at
+        pushed_at: item.pushed_at || item.updated_at
       }))
+
+      totalResults.value = data.total_count || 0
+      currentPage.value = page
 
       if (searchResults.value.length === 0) {
         searchError.value = '未找到匹配的仓库'
       }
+
+      updateCache()
     } else {
       throw new Error(data.message || '搜索失败')
     }
@@ -177,6 +375,35 @@ const searchRepositories = async () => {
   } finally {
     loadingSearch.value = false
   }
+}
+
+// 排序变更处理
+const handleSortChange = () => {
+  currentPage.value = 1
+  searchRepositories(1)
+}
+
+// 搜索范围变更处理
+const handleScopeChange = () => {
+  currentPage.value = 1
+  searchRepositories(1)
+}
+
+// 跳转到指定页
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value || loadingSearch.value) return
+  currentPage.value = page
+  searchRepositories(page)
+}
+
+// 上一页
+const prevPage = () => {
+  goToPage(currentPage.value - 1)
+}
+
+// 下一页
+const nextPage = () => {
+  goToPage(currentPage.value + 1)
 }
 
 const downloadRepoZip = async (repo) => {

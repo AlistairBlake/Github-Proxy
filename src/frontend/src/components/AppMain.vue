@@ -113,7 +113,8 @@
       :repoUrl="currentRepoUrl"
       :selectedNode="selectedNode"
       :getNodeUrl="getNodeUrl"
-      @back="goHome"
+      :fromView="previousView"
+      @back="goBack"
     />
 
     <!-- 搜索结果页面 -->
@@ -122,8 +123,10 @@
       :searchQuery="searchQuery"
       :selectedNode="selectedNode"
       :getNodeUrl="getNodeUrl"
+      :cachedData="searchCache"
       @back="goHome"
       @view-releases="handleViewReleasesFromSearch"
+      @cache-update="handleSearchCacheUpdate"
     />
   </main>
 </template>
@@ -145,8 +148,11 @@ const wsConnected = ref(false)
 
 // 页面路由状态
 const currentView = ref('home')
+const previousView = ref('home')
 const currentRepoUrl = ref('')
 const searchQuery = ref('')
+const navigationHistory = ref([])
+const searchCache = ref(null)
 
 let nodePollingTimer = null
 
@@ -432,10 +438,56 @@ const formatSpeed = (speed) => {
 }
 
 // 页面导航方法
+const navigateTo = (view, options = {}) => {
+  if (currentView.value === 'search') {
+    searchCache.value = {
+      query: searchQuery.value,
+      results: window.__searchResultsCache || null,
+      totalResults: window.__searchTotalResultsCache || 0,
+      currentPage: window.__searchCurrentPageCache || 1,
+      sortBy: window.__searchSortByCache || '',
+      sortOrder: window.__searchSortOrderCache || 'desc',
+      searchScope: window.__searchScopeCache || 'all'
+    }
+  }
+
+  if (currentView.value !== 'home') {
+    navigationHistory.value.push({
+      view: currentView.value,
+      repoUrl: currentRepoUrl.value,
+      searchQuery: searchQuery.value
+    })
+  }
+
+  previousView.value = currentView.value
+  currentView.value = view
+
+  if (options.repoUrl !== undefined) {
+    currentRepoUrl.value = options.repoUrl
+  }
+  if (options.searchQuery !== undefined) {
+    searchQuery.value = options.searchQuery
+  }
+}
+
+const goBack = () => {
+  if (navigationHistory.value.length > 0) {
+    const previousState = navigationHistory.value.pop()
+    previousView.value = previousState.view === 'home' ? 'home' : currentView.value
+    currentView.value = previousState.view
+    currentRepoUrl.value = previousState.repoUrl || ''
+    searchQuery.value = previousState.searchQuery || ''
+  } else {
+    goHome()
+  }
+}
+
 const goHome = () => {
   currentView.value = 'home'
+  previousView.value = 'home'
   currentRepoUrl.value = ''
   searchQuery.value = ''
+  navigationHistory.value = []
 }
 
 const handleAction = () => {
@@ -443,8 +495,7 @@ const handleAction = () => {
 
   switch (inputType.value) {
     case 'releases':
-      currentRepoUrl.value = githubUrl.value.trim()
-      currentView.value = 'releases'
+      navigateTo('releases', { repoUrl: githubUrl.value.trim() })
       break
     case 'file':
       downloadFile()
@@ -453,13 +504,11 @@ const handleAction = () => {
       downloadRepoZip()
       break
     case 'search':
-      searchQuery.value = githubUrl.value.trim()
-      currentView.value = 'search'
+      navigateTo('search', { searchQuery: githubUrl.value.trim() })
       break
     default:
       if (isReleasesMode.value) {
-        currentRepoUrl.value = githubUrl.value.trim()
-        currentView.value = 'releases'
+        navigateTo('releases', { repoUrl: githubUrl.value.trim() })
       } else {
         downloadFile()
       }
@@ -502,8 +551,11 @@ const downloadRepoZip = async () => {
 }
 
 const handleViewReleasesFromSearch = (repoUrl) => {
-  currentRepoUrl.value = repoUrl
-  currentView.value = 'releases'
+  navigateTo('releases', { repoUrl: repoUrl })
+}
+
+const handleSearchCacheUpdate = (cacheData) => {
+  searchCache.value = cacheData
 }
 
 const toggleReleasesMode = () => {

@@ -25,7 +25,7 @@ else {
 }
 
 # 2. Build frontend
-Write-Host "[1/5] Building frontend..." -ForegroundColor Yellow
+Write-Host "[1/4] Building frontend..." -ForegroundColor Yellow
 Push-Location "$SrcDir/frontend"
 try {
     npm install --silent 2>&1 | Out-Null

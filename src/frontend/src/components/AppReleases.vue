@@ -6,15 +6,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m15 18-6-6 6-6"></path>
           </svg>
-          返回首页
+          {{ fromView === 'search' ? '返回搜索结果' : '返回首页' }}
         </button>
-
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="font-bold text-3xl text-gray-900 dark:text-white">Releases 列表</h1>
-            <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">{{ repoUrl }}</p>
-          </div>
-        </div>
 
         <div v-if="loadingReleases" class="text-center py-12">
           <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -140,7 +133,11 @@ import { renderMarkdown } from '../markdown.js'
 const props = defineProps({
   repoUrl: String,
   selectedNode: Object,
-  getNodeUrl: Function
+  getNodeUrl: Function,
+  fromView: {
+    type: String,
+    default: 'home'
+  }
 })
 
 const emit = defineEmits(['back'])
