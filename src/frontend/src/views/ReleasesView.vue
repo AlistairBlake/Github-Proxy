@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { renderMarkdown } from '../markdown.js'
 
 const props = defineProps({
@@ -154,6 +154,16 @@ const totalPages = ref(0)
 
 onMounted(() => {
   if (props.repoUrl) {
+    fetchReleases()
+  }
+})
+
+watch(() => props.repoUrl, (newUrl, oldUrl) => {
+  if (newUrl && newUrl !== oldUrl) {
+    currentPage.value = 1
+    totalReleases.value = 0
+    totalPages.value = 0
+    releasesData.value = []
     fetchReleases()
   }
 })

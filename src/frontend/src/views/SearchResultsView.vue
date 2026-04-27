@@ -181,14 +181,10 @@ import { ref, onMounted, computed } from 'vue'
 const props = defineProps({
   searchQuery: String,
   selectedNode: Object,
-  getNodeUrl: Function,
-  cachedData: {
-    type: Object,
-    default: null
-  }
+  getNodeUrl: Function
 })
 
-const emit = defineEmits(['back', 'view-releases', 'cache-update'])
+const emit = defineEmits(['back', 'view-releases'])
 
 const searchResults = ref([])
 const loadingSearch = ref(false)
@@ -236,18 +232,7 @@ const visiblePages = computed(() => {
 })
 
 onMounted(() => {
-  // 只有当缓存的搜索词与当前搜索词一致时才使用缓存
-  // 防止显示错误的搜索结果
-  if (props.cachedData &&
-      props.cachedData.results &&
-      props.cachedData.query === props.searchQuery) {
-    searchResults.value = props.cachedData.results
-    totalResults.value = props.cachedData.totalResults
-    currentPage.value = props.cachedData.currentPage
-    sortBy.value = props.cachedData.sortBy || ''
-    sortOrder.value = props.cachedData.sortOrder || 'desc'
-    searchScope.value = props.cachedData.searchScope || 'all'
-  } else if (props.searchQuery) {
+  if (props.searchQuery) {
     searchRepositories()
   }
 })
@@ -293,28 +278,6 @@ const buildQueryString = (query) => {
   }
 
   return baseQuery
-}
-
-// 更新缓存
-const updateCache = () => {
-  const cacheData = {
-    query: props.searchQuery,
-    results: searchResults.value,
-    totalResults: totalResults.value,
-    currentPage: currentPage.value,
-    sortBy: sortBy.value,
-    sortOrder: sortOrder.value,
-    searchScope: searchScope.value
-  }
-
-  emit('cache-update', cacheData)
-
-  window.__searchResultsCache = searchResults.value
-  window.__searchTotalResultsCache = totalResults.value
-  window.__searchCurrentPageCache = currentPage.value
-  window.__searchSortByCache = sortBy.value
-  window.__searchSortOrderCache = sortOrder.value
-  window.__searchScopeCache = searchScope.value
 }
 
 const searchRepositories = async (page = 1) => {
@@ -383,8 +346,6 @@ const searchRepositories = async (page = 1) => {
       if (searchResults.value.length === 0) {
         searchError.value = '未找到匹配的仓库'
       }
-
-      updateCache()
     } else {
       throw new Error(data.message || '搜索失败')
     }

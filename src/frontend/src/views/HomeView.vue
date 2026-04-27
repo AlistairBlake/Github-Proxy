@@ -48,10 +48,8 @@
       :searchQuery="searchQuery"
       :selectedNode="selectedNode"
       :getNodeUrl="getNodeUrl"
-      :cachedData="searchCache"
       @back="goHome"
       @view-releases="handleViewReleasesFromSearch"
-      @cache-update="handleSearchCacheUpdate"
     />
   </main>
 </template>
@@ -77,7 +75,6 @@ const previousView = ref('home')
 const currentRepoUrl = ref('')
 const searchQuery = ref('')
 const navigationHistory = ref([])
-const searchCache = ref(null)
 
 let nodePollingTimer = null
 
@@ -266,18 +263,6 @@ const speedTest = async () => {
 
 // 页面导航方法
 const navigateTo = (view, options = {}) => {
-  if (currentView.value === 'search') {
-    searchCache.value = {
-      query: searchQuery.value,
-      results: window.__searchResultsCache || null,
-      totalResults: window.__searchTotalResultsCache || 0,
-      currentPage: window.__searchCurrentPageCache || 1,
-      sortBy: window.__searchSortByCache || '',
-      sortOrder: window.__searchSortOrderCache || 'desc',
-      searchScope: window.__searchScopeCache || 'all'
-    }
-  }
-
   if (currentView.value !== 'home') {
     navigationHistory.value.push({
       view: currentView.value,
@@ -384,10 +369,6 @@ const downloadRepoZip = async () => {
 
 const handleViewReleasesFromSearch = (repoUrl) => {
   navigateTo('releases', { repoUrl: repoUrl })
-}
-
-const handleSearchCacheUpdate = (cacheData) => {
-  searchCache.value = cacheData
 }
 
 const toggleReleasesMode = () => {
