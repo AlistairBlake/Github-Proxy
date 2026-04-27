@@ -252,37 +252,37 @@ onMounted(() => {
   }
 })
 
-// 构建查询字符串
+// 构建查询字符串 - 支持 GitHub 完整搜索语法
 const buildQueryString = (query) => {
   let baseQuery = query.trim()
 
   if (!baseQuery) return ''
 
-  // 检查是否已经是完整的 GitHub 搜索语法（包含 user: 或 org:）
-  const hasAdvancedSyntax = /(?:user|org|topic|language|stars|forks|created|pushed):/.test(baseQuery)
+  // 1. 检查是否已经是完整的 GitHub 搜索语法（包含限定符）
+  // 支持的限定符：user:, org:, repo:, topic:, language:, stars:, forks:, created:, pushed:, desc:, description:, readme:
+  const hasAdvancedSyntax = /(?:user|org|repo|topic|language|stars|forks|created|pushed|desc|description|readme):/.test(baseQuery)
 
-  // 处理 user/repo 格式
-  if (baseQuery.includes('/') && !baseQuery.startsWith('http') && !hasAdvancedSyntax) {
-    const parts = baseQuery.split('/').filter(p => p.trim())
-    if (parts.length === 2) {
-      // 判断第一个部分是否像用户名（通常不含特殊字符且较短）
-      // 如果是 user/repo 格式，搜索该用户的该仓库
-      baseQuery = `user:${parts[0]} ${parts[1]}`
-    }
-  } else if (!baseQuery.includes(' ') && !hasAdvancedSyntax && !baseQuery.includes('/')) {
-    // 单个词（无空格、无斜杠、无高级语法）
-    // 自动判断：如果看起来像用户名（字母开头，可能包含连字符和点），则搜索该用户的所有仓库
-    const looksLikeUsername = /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(baseQuery)
-    
-    if (looksLikeUsername && baseQuery.length <= 39) {
-      // GitHub 用户名最长 39 个字符，符合此规则则视为用户名搜索
-      baseQuery = `user:${baseQuery}`
-    }
-    // 否则作为普通关键词搜索（保持原样）
+  // 如果已经包含高级语法，直接使用，不再做额外处理
+  if (hasAdvancedSyntax) {
+    return baseQuery
   }
 
-  // 根据搜索范围添加限定符
-  // 注意：GitHub API 的 in: 限定符不支持逗号分隔多个字段
+  // 2. 处理 user/repo 格式（例如：facebook/react）
+  if (baseQuery.includes('/') && !baseQuery.startsWith('http')) {
+    const parts = baseQuery.split('/').filter(p => p.trim())
+    if (parts.length === 2) {
+      // 转换为：user:facebook react
+      baseQuery = `user:${parts[0]} ${parts[1]}`
+      return baseQuery
+    }
+  }
+
+  // 3. 其他情况：作为全局关键词搜索（保持原样）
+  // 用户输入 "facebook" 或 "facebook web" 都直接作为全局搜索
+  // GitHub API 会在所有字段中搜索这些关键词
+
+  // 4. 根据搜索范围添加限定符（仅在非特殊查询时）
+  // 注意：不要对用户名或仓库名自动添加 in: 限定符
   if (searchScope.value !== 'all' && !baseQuery.includes('user:') && !baseQuery.includes('org:')) {
     const scopeMap = {
       'name': 'in:name',
@@ -342,7 +342,7 @@ const searchRepositories = async (page = 1) => {
     }
 
     const proxyUrl = '/' + `https://api.github.com/${apiPath}`
-    const response = await fetch(proxyUrl)
+    const response = await fetch(proxyUrl, { cache: 'no-store' })
 
     if (!response.ok) {
       let errorMsg = `搜索失败: ${response.status} ${response.statusText}`

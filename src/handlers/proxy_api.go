@@ -94,6 +94,7 @@ func proxyAPIRequest(c *gin.Context, u string, redirectCount int) {
 	// 设置状态码并复制响应头
 	c.Status(resp.StatusCode)
 	copyResponseHeaders(c, resp)
+	c.Header("Cache-Control", "no-store")
 	c.Writer.WriteHeaderNow()
 
 	// 直接将响应体流式复制到客户端（API 响应通常较小）

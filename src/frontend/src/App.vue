@@ -1,18 +1,18 @@
 <template>
   <div class="flex flex-col min-h-screen">
-    <AppHeader :isDark="isDark" :isContact="showContact" @toggleDark="toggleDark" @goContact="showContact = true" @goHome="showContact = false" />
-    <AppMain v-if="!showContact" />
-    <AppContact v-else />
-    <AppFooter />
+    <Header :isDark="isDark" :isContact="showContact" @toggleDark="toggleDark" @goContact="showContact = true" @goHome="showContact = false" />
+    <HomeView v-if="!showContact" />
+    <ContactView v-else />
+    <Footer />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import AppHeader from './components/AppHeader.vue'
-import AppMain from './components/AppMain.vue'
-import AppContact from './components/AppContact.vue'
-import AppFooter from './components/AppFooter.vue'
+import Header from './components/common/Header.vue'
+import HomeView from './views/HomeView.vue'
+import ContactView from './views/ContactView.vue'
+import Footer from './components/common/Footer.vue'
 
 const isDark = ref(false)
 const showContact = ref(false)

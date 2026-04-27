@@ -176,7 +176,7 @@ const fetchReleases = async (page = 1) => {
     const apiPath = `repos/${owner}/${repo}/releases?per_page=${perPage}&page=${page}`
     const proxyUrl = '/' + `https://api.github.com/${apiPath}`
 
-    const response = await fetch(proxyUrl)
+    const response = await fetch(proxyUrl, { cache: 'no-store' })
 
     if (!response.ok) {
       if (response.status === 403) {

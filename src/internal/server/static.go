@@ -12,7 +12,7 @@ import (
 // 定义了从嵌入式文件系统读取文件的最小接口
 // 支持使用 embed.FS 或其他实现了此接口的文件系统
 type StaticFileSystem interface {
-	ReadFile(name string) ([]byte, error) // 读取文件内容
+	ReadFile(name string) ([]byte, error)       // 读取文件内容
 	ReadDir(name string) ([]fs.DirEntry, error) // 读取目录内容
 }
 
@@ -34,6 +34,17 @@ func ServeEmbedFile(c *gin.Context, filesystem StaticFileSystem, filename string
 
 	// 根据文件扩展名检测 MIME 类型
 	contentType := detectContentType(filename)
+
+	switch {
+	case strings.HasSuffix(filename, ".html"):
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
+	case strings.HasSuffix(filename, ".js"), strings.HasSuffix(filename, ".css"):
+		c.Header("Cache-Control", "public, max-age=31536000, immutable")
+	default:
+		c.Header("Cache-Control", "public, max-age=86400")
+	}
 
 	// 将文件内容写入响应（状态码 200）
 	c.Data(200, contentType, data)
@@ -75,9 +86,9 @@ func detectContentType(filename string) string {
 // 允许来自任何源的 GET 和 OPTIONS 请求
 // 主要用于 favicon 等可能被跨域引用的资源
 func SetCORSSettings(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")                    // 允许所有来源
-	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")         // 允许的方法
-	c.Header("Access-Control-Allow-Headers", "*")                   // 允许的请求头
+	c.Header("Access-Control-Allow-Origin", "*")             // 允许所有来源
+	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS") // 允许的方法
+	c.Header("Access-Control-Allow-Headers", "*")            // 允许的请求头
 }
 
 // EmbedFSWrapper embed.FS 包装器实现 StaticFileSystem 接口。
