@@ -22,17 +22,29 @@ import (
 // 处理流程:
 //
 //  1. 创建 HTTP 请求，复制客户端请求头
-//  2. 断点续传检测：根据客户端 Range 头决定是否跳过预检
-//  3. 发送请求到 GitHub（跟随重定向）
-//  4. 安全检查：内容类型过滤 + 文件大小限制
-//  5. 根据资源类型分发:
+//  2. 快速模式检测：主分支 zip 等小文件可跳过预检以提升响应速度
+//  3. 断点续传检测：根据客户端 Range 头决定是否跳过预检
+//  4. 发送请求到 GitHub（跟随重定向）
+//  5. 安全检查：内容类型过滤 + 文件大小限制
+//  6. 根据资源类型分发:
 //     - 脚本文件 (.sh/.ps1) → handleScriptResponse（URL 替换处理）
 //     - 普通文件          → handleNormalResponse（直接转发）
+//
+// 双模式下载设计：
+//
+//	快速模式 (fast=true):
+//	  → 跳过 Range 预检 → 无进度条但响应更快
+//	  → 适用场景：主分支 zip、小文件下载
+//
+//	标准模式 (fast=false):
+//	  → 并发 Range 预检 + 实际下载
+//	  → 预检结果用于设置 Content-Length=总大小 → 浏览器显示进度条
+//	  → 适用场景：大文件 Release 下载、需要进度反馈的场景
 //
 // 断点续传与首次下载的解耦设计：
 //
 //	客户端无 Range (首次下载):
-//	  → 并发发起 Range 探测 + 实际下载请求
+//	  → 非快速模式：并发发起 Range 探测 + 实际下载请求
 //	  → 探测结果用于设置 Content-Length=总大小 → 浏览器显示进度条
 //
 //	客户端有 Range (断点续传):
@@ -75,14 +87,16 @@ func proxyDownloadRequest(c *gin.Context, u string, redirectCount int) {
 
 	// 断点续传与首次下载解耦设计：
 	//   - 客户端带 Range → 断点续传路径（跳过预检，透传 GitHub 的 CL）
-	//   - 客户端无 Range → 首次下载路径（Range 探测与实际下载并发执行）
+	//   - 快速模式 (fast=1) → 跳过预检，优先响应速度（无进度条）
+	//   - 普通模式 → Range 探测与实际下载并发执行（有进度条）
 	isRangeRequest := c.Request.Header.Get("Range") != ""
+	isFastMode := c.Query("fast") == "1"
 	var preflightSize int64
 	preflightCh := make(chan int64, 1)
 
-	// 对于非断点续传的 GET 请求，启动并发的 Range 预检
+	// 对于非断点续传、非快速模式的 GET 请求，启动并发的 Range 预检
 	// 用于提前获取文件总大小，使浏览器能显示进度条
-	if !isRangeRequest && c.Request.Method == "GET" {
+	if !isRangeRequest && !isFastMode && c.Request.Method == "GET" {
 		go func() {
 			preflightCh <- ghproxyservice.PrefetchContentLength(ctx, u, c.Request.Header)
 		}()
@@ -104,7 +118,8 @@ func proxyDownloadRequest(c *gin.Context, u string, redirectCount int) {
 	}()
 
 	// 等待并发预检结果（与实际下载请求并行，减少浏览器等待时间）
-	if !isRangeRequest && c.Request.Method == "GET" {
+	// 快速模式和断点续传模式跳过预检等待
+	if !isRangeRequest && !isFastMode && c.Request.Method == "GET" {
 		select {
 		case preflightSize = <-preflightCh:
 		case <-ctx.Done():

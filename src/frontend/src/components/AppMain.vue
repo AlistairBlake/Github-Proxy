@@ -545,8 +545,9 @@ const downloadRepoZip = async () => {
     console.error('Failed to fetch default branch, using main:', e)
   }
 
+  // 使用快速模式下载 (fast=1)：跳过预检，提升响应速度
   const zipUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`
-  const proxyUrl = getNodeUrl(selectedNode.value) + '/' + zipUrl
+  const proxyUrl = getNodeUrl(selectedNode.value) + '/' + zipUrl + '?fast=1'
   window.open(proxyUrl, '_blank')
 }
 
