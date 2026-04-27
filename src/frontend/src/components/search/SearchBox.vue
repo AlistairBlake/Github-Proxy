@@ -8,6 +8,7 @@
           @input="onInput($event)"
           @compositionstart="isComposing = true"
           @compositionend="onCompositionEnd($event)"
+          @keydown="onKeyDown($event)"
           @keyup.enter="$emit('submit')"
           :placeholder="placeholder"
           class="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 h-[48px] border-gray-300 dark:border-gray-700 focus:ring-blue-500" />
@@ -55,7 +56,14 @@ const onInput = (e) => {
 
 const onCompositionEnd = (e) => {
   isComposing.value = false
-  emit('update:modelValue', replaceColons(e.target.value))
+  const newValue = replaceColons(e.target.value)
+  emit('update:modelValue', newValue)
+}
+
+const onKeyDown = (e) => {
+  if (e.key === 'Enter' && isComposing.value) {
+    e.preventDefault()
+  }
 }
 
 const inputType = computed(() => {
