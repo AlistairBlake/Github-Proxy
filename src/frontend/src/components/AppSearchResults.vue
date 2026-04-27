@@ -258,17 +258,32 @@ const buildQueryString = (query) => {
 
   if (!baseQuery) return ''
 
+  // 检查是否已经是完整的 GitHub 搜索语法（包含 user: 或 org:）
+  const hasAdvancedSyntax = /(?:user|org|topic|language|stars|forks|created|pushed):/.test(baseQuery)
+
   // 处理 user/repo 格式
-  if (baseQuery.includes('/') && !baseQuery.startsWith('http')) {
+  if (baseQuery.includes('/') && !baseQuery.startsWith('http') && !hasAdvancedSyntax) {
     const parts = baseQuery.split('/').filter(p => p.trim())
     if (parts.length === 2) {
+      // 判断第一个部分是否像用户名（通常不含特殊字符且较短）
+      // 如果是 user/repo 格式，搜索该用户的该仓库
       baseQuery = `user:${parts[0]} ${parts[1]}`
     }
+  } else if (!baseQuery.includes(' ') && !hasAdvancedSyntax && !baseQuery.includes('/')) {
+    // 单个词（无空格、无斜杠、无高级语法）
+    // 自动判断：如果看起来像用户名（字母开头，可能包含连字符和点），则搜索该用户的所有仓库
+    const looksLikeUsername = /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(baseQuery)
+    
+    if (looksLikeUsername && baseQuery.length <= 39) {
+      // GitHub 用户名最长 39 个字符，符合此规则则视为用户名搜索
+      baseQuery = `user:${baseQuery}`
+    }
+    // 否则作为普通关键词搜索（保持原样）
   }
 
   // 根据搜索范围添加限定符
   // 注意：GitHub API 的 in: 限定符不支持逗号分隔多个字段
-  if (searchScope.value !== 'all' && !baseQuery.includes('user:')) {
+  if (searchScope.value !== 'all' && !baseQuery.includes('user:') && !baseQuery.includes('org:')) {
     const scopeMap = {
       'name': 'in:name',
       'description': 'in:description',
