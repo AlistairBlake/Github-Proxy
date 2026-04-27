@@ -133,8 +133,6 @@ jobs:
           path: release/
           merge-multiple: true
 
-      - name: Copy config.toml
-        run: cp src/config.toml release/
 
       - name: Generate changelog
         id: changelog
