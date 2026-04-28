@@ -7,7 +7,7 @@
       cursor: isDragging ? 'grabbing' : 'grab'
     }"
     @mousedown="startDrag"
-    @touchstart.prevent="startDragTouch"
+    @touchstart="startDragTouch"
   >
     <!-- 帮助按钮（收起状态） -->
     <div
