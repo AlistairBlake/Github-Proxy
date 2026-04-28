@@ -83,6 +83,9 @@ func main() {
 	// 构建路由器，注册所有路由规则
 	router := server.BuildRouter(routerCfg)
 
+	// 初始化网络流量监控
+	server.InitNetworkMonitor()
+
 	// 步骤6：创建并启动 HTTP 服务器
 	srv := server.NewServer(cfg, router)
 

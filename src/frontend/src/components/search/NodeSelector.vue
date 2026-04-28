@@ -6,6 +6,17 @@
         共享模式 - 已连接到节点调度中心
       </span>
     </div>
+    <div v-if="networkSpeed" class="mb-3 flex items-center gap-4 text-xs">
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><polyline points="5,12 12,5 19,12"/></svg>
+        {{ formatNetSpeed(networkSpeed.uploadSpeed) }}
+      </span>
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><polyline points="19,12 12,19 5,12"/></svg>
+        {{ formatNetSpeed(networkSpeed.downloadSpeed) }}
+      </span>
+      <span v-if="networkSpeed.interfaceName" class="text-gray-400 dark:text-gray-500">{{ networkSpeed.interfaceName }}</span>
+    </div>
     <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
       <span class="hidden md:block text-gray-700 dark:text-gray-300 font-medium whitespace-nowrap">节点选择：</span>
       <div class="relative w-full md:flex-1 md:max-w-xl">
@@ -77,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   nodes: {
@@ -106,6 +117,28 @@ const emit = defineEmits(['select-node', 'speed-test', 'toggle-releases'])
 
 const showList = ref(false)
 const showAll = ref(false)
+const networkSpeed = ref(null)
+let pollTimer = null
+
+const fetchNetworkSpeed = async () => {
+  try {
+    const res = await fetch('/api/network/stats', { cache: 'no-store' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.uploadSpeed > 0 || data.downloadSpeed > 0) {
+        networkSpeed.value = data
+      }
+    }
+  } catch {}
+}
+onMounted(() => {
+  fetchNetworkSpeed()
+  pollTimer = setInterval(fetchNetworkSpeed, 1000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 const displayedNodes = computed(() => {
   if (showAll.value || props.nodes.length <= 5) {
@@ -136,5 +169,18 @@ const formatSpeed = (speed) => {
   if (speed === null || speed === undefined) return ''
   if (speed >= 1024) return (speed / 1024).toFixed(1) + ' MB/s'
   return speed.toFixed(0) + ' KB/s'
+}
+
+const formatNetSpeed = (bytesPerSec) => {
+  if (!bytesPerSec || bytesPerSec <= 0) return '0 B/s'
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+  let i = 0
+  let value = bytesPerSec
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024
+    i++
+  }
+  if (i === 0) return `${value.toFixed(0)} ${units[i]}`
+  return `${value.toFixed(1)} ${units[i]}`
 }
 </script>

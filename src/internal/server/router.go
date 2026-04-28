@@ -8,10 +8,25 @@ import (
 	"github-proxy/config"
 	"github-proxy/handlers"
 	ghproxyservice "github-proxy/internal/service/github"
+	netservice "github-proxy/internal/service/network"
 	proxynodereg "github-proxy/internal/service/nodereg"
 
 	"github.com/gin-gonic/gin"
 )
+
+var networkMonitor *netservice.Monitor
+
+func GetNetworkSpeed() *netservice.NetworkSpeed {
+	if networkMonitor == nil {
+		return nil
+	}
+	return networkMonitor.GetSpeed()
+}
+
+func InitNetworkMonitor() {
+	networkMonitor = netservice.NewMonitor(time.Second)
+	networkMonitor.Start()
+}
 
 // RouterConfig 路由器配置选项。
 type RouterConfig struct {
@@ -89,6 +104,15 @@ func registerAPIRoutes(router *gin.Engine, cfg *RouterConfig) {
 
 		branch := ghproxyservice.GetDefaultBranchWithCache(owner, repo)
 		c.JSON(http.StatusOK, gin.H{"branch": branch})
+	})
+
+	router.GET("/api/network/stats", func(c *gin.Context) {
+		speed := GetNetworkSpeed()
+		if speed == nil {
+			c.JSON(http.StatusOK, gin.H{"interfaceName": "", "uploadSpeed": 0, "downloadSpeed": 0})
+			return
+		}
+		c.JSON(http.StatusOK, speed)
 	})
 }
 
