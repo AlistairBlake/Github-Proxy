@@ -176,17 +176,10 @@ const startTimeFormatted = computed(() => {
 })
 
 const uptime = computed(() => {
-  if (!serverInfo.value.start_time_unix) return '未知'
-  const diffMs = Date.now() - serverInfo.value.start_time_unix * 1000
-  const seconds = Math.floor(diffMs / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0) return `${days} 天 ${hours % 24} 小时`
-  if (hours > 0) return `${hours} 小时 ${minutes % 60} 分钟`
-  if (minutes > 0) return `${minutes} 分钟`
-  return `${seconds} 秒`
+  if (serverInfo.value.uptime) {
+    return serverInfo.value.uptime
+  }
+  return '未知'
 })
 
 const copyEmail = async () => {

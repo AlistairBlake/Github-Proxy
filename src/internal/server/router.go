@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -69,14 +70,41 @@ func BuildRouter(cfg *RouterConfig) *gin.Engine {
 // registerHealthRoutes 注册健康检查相关路由。
 func registerHealthRoutes(router *gin.Engine, cfg *RouterConfig) {
 	router.GET("/ready", func(c *gin.Context) {
+		now := time.Now()
+		uptimeDuration := now.Sub(cfg.ServiceStartTime)
+
+		uptimeStr := formatUptime(uptimeDuration)
+
 		c.JSON(http.StatusOK, gin.H{
 			"ready":           true,
 			"service":         "Github-Proxy",
 			"version":         cfg.Version,
 			"build_time":      cfg.BuildTime,
 			"start_time_unix": cfg.ServiceStartTime.Unix(),
+			"uptime":          uptimeStr,
+			"uptime_seconds":  int(uptimeDuration.Seconds()),
 		})
 	})
+}
+
+// formatUptime 将运行时长格式化为易读的中文格式
+func formatUptime(d time.Duration) string {
+	totalSeconds := int(d.Seconds())
+	days := totalSeconds / (24 * 3600)
+	hours := (totalSeconds % (24 * 3600)) / 3600
+	minutes := (totalSeconds % 3600) / 60
+	seconds := totalSeconds % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%d 天 %d 小时", days, hours)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%d 小时 %d 分钟", hours, minutes)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%d 分钟", minutes)
+	}
+	return fmt.Sprintf("%d 秒", seconds)
 }
 
 // registerAPIRoutes 注册 API 路由。
