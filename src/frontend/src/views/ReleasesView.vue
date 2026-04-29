@@ -29,15 +29,10 @@
         </div>
 
         <div v-else class="space-y-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white">版本列表</h2>
-            <span class="text-sm text-gray-500 dark:text-gray-400">共 {{ totalReleases }} 个版本，{{ totalPages }} 页</span>
-          </div>
-
-          <div v-for="release in releasesData" :key="release.id" class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-6">
-            <div class="flex items-start justify-between mb-4">
+          <div v-for="release in releasesData" :key="release.id" class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 sm:p-6">
+            <div class="flex flex-col gap-3 mb-4">
               <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
                   <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-sm font-semibold rounded-full">
                     {{ release.tag_name }}
                   </span>
@@ -47,8 +42,9 @@
                   <span v-if="release.draft" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-full">
                     Draft
                   </span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto">共 {{ totalReleases }} 个版本，{{ totalPages }} 页</span>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ release.name || release.tag_name }}</h3>
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ release.name || release.tag_name }}</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                   发布时间: {{ formatDate(release.published_at) }}
                 </p>
@@ -60,15 +56,15 @@
             <div v-if="release.assets && release.assets.length > 0" class="border-t border-gray-200 dark:border-gray-700 pt-4">
               <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">下载资源 ({{ release.assets.length }})</h4>
               <div class="space-y-2">
-                <div v-for="asset in release.assets" :key="asset.id" class="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50 transition-colors">
+                <div v-for="asset in release.assets" :key="asset.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-900/30 rounded-lg hover:bg-gray-100/70 dark:hover:bg-gray-700/50 transition-colors gap-3">
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ asset.name }}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ formatSize(asset.size) }} · 下载 {{ asset.download_count }} 次</p>
                   </div>
-                  <div class="flex items-center gap-2 ml-4">
+                  <div class="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       @click="copyAssetUrl(asset.browser_download_url)"
-                      class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                      class="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium rounded-lg transition-colors"
                       :class="{ 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400': copiedAssetUrl === asset.browser_download_url }"
                     >
                       <span v-if="copiedAssetUrl === asset.browser_download_url">已复制</span>
@@ -76,7 +72,7 @@
                     </button>
                     <button
                       @click="downloadAsset(asset.browser_download_url)"
-                      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                      class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                       下载
                     </button>
@@ -175,9 +171,20 @@ const fetchReleases = async (page = 1) => {
   releasesError.value = ''
 
   try {
-    const urlParts = props.repoUrl.split('/')
-    const owner = urlParts[3]
-    const repo = urlParts[4]?.replace('.git', '')
+    let owner, repo
+    const url = props.repoUrl.trim()
+
+    if (url.startsWith('https://github.com/')) {
+      const urlParts = url.split('/')
+      owner = urlParts[3]
+      repo = urlParts[4]?.replace('.git', '')
+    } else {
+      const parts = url.split('/')
+      if (parts.length >= 2) {
+        owner = parts[0]
+        repo = parts[1]?.replace('.git', '')
+      }
+    }
 
     if (!owner || !repo) {
       throw new Error('无效的仓库URL')

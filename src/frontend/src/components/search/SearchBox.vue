@@ -108,8 +108,12 @@ const isValid = computed(() => {
   if (!props.modelValue.trim()) return false
 
   if (props.isReleasesMode) {
-    return props.modelValue.startsWith('https://github.com/') &&
-           props.modelValue.split('/').length >= 5
+    const url = props.modelValue.trim()
+    if (url.startsWith('https://github.com/')) {
+      return url.split('/').length >= 5
+    }
+    const shortPattern = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/
+    return shortPattern.test(url)
   }
 
   const url = props.modelValue.trim()

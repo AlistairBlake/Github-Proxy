@@ -6,7 +6,7 @@
         共享模式 - 已连接到节点调度中心
       </span>
     </div>
-    <div v-if="networkSpeed" class="mb-3 flex items-center gap-4 text-xs">
+    <div v-if="networkSpeed" class="mb-3 flex flex-wrap items-center gap-2 sm:gap-4 text-xs">
       <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><polyline points="5,12 12,5 19,12"/></svg>
         {{ formatNetSpeed(networkSpeed.uploadSpeed) }}

@@ -44,7 +44,7 @@
             </div>
 
             <!-- 结果统计 -->
-            <div class="ml-auto text-sm text-gray-500 dark:text-gray-400">
+            <div class="w-full sm:ml-auto text-sm text-gray-500 dark:text-gray-400">
               共找到 <span class="font-semibold text-blue-600 dark:text-blue-400">{{ totalResults }}</span> 个仓库
               <span v-if="totalResults > 0" class="ml-2">(第 {{ currentPage }}/{{ totalPages }} 页)</span>
             </div>
@@ -71,28 +71,29 @@
         </div>
 
         <div v-else class="space-y-4">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white">仓库列表</h2>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">仓库列表</h2>
             <span class="text-sm text-gray-500 dark:text-gray-400">
               显示 {{ searchResults.length }} / {{ totalResults }} 个仓库
+              <span v-if="totalPages > 1" class="ml-1">(第 {{ currentPage }}/{{ totalPages }} 页)</span>
             </span>
           </div>
 
-          <div v-for="repo in searchResults" :key="repo.id" class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
+          <div v-for="repo in searchResults" :key="repo.id" class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-0">
+              <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-700 dark:text-gray-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-700 dark:text-gray-300 flex-shrink-0">
                     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
                   </svg>
-                  <a :href="repo.html_url" target="_blank" rel="noopener noreferrer" class="text-xl font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                  <a :href="repo.html_url" target="_blank" rel="noopener noreferrer" class="text-lg sm:text-xl font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 truncate">
                     {{ repo.full_name }}
                   </a>
                 </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ repo.description || '暂无描述' }}</p>
-                <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{{ repo.description || '暂无描述' }}</p>
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-500 dark:text-gray-400">
                   <span v-if="repo.language" class="flex items-center gap-1">
-                    <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0"></span>
                     {{ repo.language }}
                   </span>
                   <span class="flex items-center gap-1">
@@ -114,17 +115,17 @@
                   <span>最后提交 {{ formatDate(repo.pushed_at) }}</span>
                 </div>
               </div>
-              <div class="flex flex-col gap-2 ml-4">
+              <div class="flex flex-row sm:flex-col gap-2 sm:ml-4 w-full sm:w-auto">
                 <button
                   @click="downloadRepoZip(repo)"
                   :disabled="!selectedNode"
-                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  class="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                 >
                   下载 ZIP
                 </button>
                 <button
                   @click="viewReleases(repo)"
-                  class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                 >
                   Releases
                 </button>
@@ -247,8 +248,11 @@ const buildQueryString = (query) => {
   // 支持的限定符：user:, org:, repo:, topic:, language:, stars:, forks:, created:, pushed:, desc:, description:, readme:
   const hasAdvancedSyntax = /(?:user|org|repo|topic|language|stars|forks|created|pushed|desc|description|readme):/.test(baseQuery)
 
-  // 如果已经包含高级语法，直接使用，不再做额外处理
+  // 如果已经包含高级语法，处理 repo: 的特殊情况
   if (hasAdvancedSyntax) {
+    baseQuery = baseQuery.replace(/repo:([^/\s]+)(?=\s|$)/g, (_, repoName) => {
+      return `${repoName} in:name`
+    })
     return baseQuery
   }
 
