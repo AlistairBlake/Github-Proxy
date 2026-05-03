@@ -95,6 +95,7 @@ func proxyAPIRequest(c *gin.Context, u string, redirectCount int) {
 	c.Status(resp.StatusCode)
 	copyResponseHeaders(c, resp)
 	c.Header("Cache-Control", "no-store")
+	c.Header("Access-Control-Expose-Headers", "Link, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-GitHub-Request-Id")
 	c.Writer.WriteHeaderNow()
 
 	// 直接将响应体流式复制到客户端（API 响应通常较小）
