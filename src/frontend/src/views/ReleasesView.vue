@@ -223,7 +223,7 @@ const fetchReleases = async (page = 1) => {
         } else {
           totalReleases.value = (totalPages.value - 1) * perPage + perPage
         }
-      } else if (data.length < perPage) {
+      } else {
         totalPages.value = currentPage.value
         totalReleases.value = (currentPage.value - 1) * perPage + data.length
       }
